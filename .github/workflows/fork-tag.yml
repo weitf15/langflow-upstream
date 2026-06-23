@@ -53,6 +53,6 @@ jobs:
       - name: Push to fork
         run: |
           BRANCH="${{ github.event.inputs.branch_name || 'stable' }}"
-          git remote add fork https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git remote add fork https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git
           git push -f fork HEAD:refs/heads/$BRANCH
           echo "✅ 已同步 ${{ steps.get-tag.outputs.tag }} 到 fork 的 $BRANCH 分支"
