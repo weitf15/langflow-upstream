@@ -2,7 +2,7 @@ name: Sync Latest Stable Tag
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # 每天x点自动检测
+    - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       tag:
@@ -15,7 +15,6 @@ on:
         default: 'stable'
         type: string
 
-# 添加这行权限声明
 permissions:
   contents: write
 
@@ -30,7 +29,6 @@ jobs:
             TAG="${{ github.event.inputs.tag }}"
             echo "使用手动指定的 tag: $TAG"
           else
-            # 自动从 upstream 获取所有 tag，过滤含 dev 的，按版本号排序取最新
             TAG=$(git ls-remote --tags https://github.com/langflow-ai/langflow.git | \
               awk '{print $2}' | \
               grep '^refs/tags/v[0-9]' | \
@@ -48,7 +46,14 @@ jobs:
           repository: langflow-ai/langflow
           ref: ${{ steps.get-tag.outputs.tag }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Remove upstream workflows
+        run: |
+          git rm -rf .github/workflows/ || true
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git commit -m "Remove upstream workflows for fork sync" || true
 
       - name: Push to fork
         run: |
