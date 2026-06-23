@@ -2,7 +2,7 @@ name: Sync Latest Stable Tag
 
 on:
   schedule:
-    - cron: '43 13 * * *'  # 每天x点自动检测
+    - cron: '0 6 * * *'  # 每天x点自动检测
   workflow_dispatch:
     inputs:
       tag:
