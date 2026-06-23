@@ -15,6 +15,10 @@ on:
         default: 'stable'
         type: string
 
+# 添加这行权限声明
+permissions:
+  contents: write
+
 jobs:
   sync-tag:
     runs-on: ubuntu-latest
