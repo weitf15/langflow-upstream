@@ -1,0 +1,54 @@
+name: Sync Latest Stable Tag
+
+on:
+  schedule:
+    - cron: '43 13 * * *'  # 每天x点自动检测
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '指定 Tag（留空则自动检测最新稳定版）'
+        required: false
+        type: string
+      branch_name:
+        description: '推送到 Fork 的分支名'
+        required: false
+        default: 'stable'
+        type: string
+
+jobs:
+  sync-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine target tag
+        id: get-tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+            echo "使用手动指定的 tag: $TAG"
+          else
+            # 自动从 upstream 获取所有 tag，过滤含 dev 的，按版本号排序取最新
+            TAG=$(git ls-remote --tags https://github.com/langflow-ai/langflow.git | \
+              awk '{print $2}' | \
+              grep '^refs/tags/v[0-9]' | \
+              grep -iv 'dev' | \
+              sed 's/refs\/tags\///' | \
+              sort -V | \
+              tail -n 1)
+            echo "自动检测到最新稳定 tag: $TAG"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Checkout upstream at tag
+        uses: actions/checkout@v4
+        with:
+          repository: langflow-ai/langflow
+          ref: ${{ steps.get-tag.outputs.tag }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to fork
+        run: |
+          BRANCH="${{ github.event.inputs.branch_name || 'stable' }}"
+          git remote add fork https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git push -f fork HEAD:refs/heads/$BRANCH
+          echo "✅ 已同步 ${{ steps.get-tag.outputs.tag }} 到 fork 的 $BRANCH 分支"
